@@ -2,7 +2,25 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-st.set_page_config(page_title="Credit Risk Scoring (Plantilla)", page_icon="💳", layout="wide")
+st.set_page_config(
+    page_title="Credit Risk Scoring (Plantilla)",
+    page_icon="💳",
+    layout="wide"
+)
+
+# -----------------------------
+# Sidebar - Sobre Nosotros
+# -----------------------------
+with st.sidebar:
+    st.title("Sobre Nosotros")
+    st.markdown("""
+Somos una empresa especializada en **analítica avanzada y soluciones de decisión financiera basadas en datos**.
+
+Nuestra plataforma de **Credit Scoring** evalúa el riesgo crediticio mediante modelos de *Machine Learning*, analizando variables financieras, laborales y demográficas para estimar la **probabilidad de impago** y apoyar la toma de decisiones.
+
+Creemos en el uso responsable de la tecnología para impulsar **decisiones financieras más justas, eficientes y basadas en evidencia**.
+    """)
+
 
 # -----------------------------
 # Estado para navegación
