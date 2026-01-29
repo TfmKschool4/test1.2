@@ -2,50 +2,40 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
+# -----------------------------
+# Configuración de página
+# -----------------------------
 st.set_page_config(
-    page_title="Credit Risk Scoring (Plantilla)",
+    page_title="Credit Risk Scoring",
     page_icon="💳",
     layout="wide"
 )
 
 # -----------------------------
-# Sidebar - Sobre Nosotros
+# Sidebar - Navegación
 # -----------------------------
-with st.sidebar:
-    st.title("Sobre Nosotros")
-    st.markdown("""
-Somos una empresa especializada en **analítica avanzada y soluciones de decisión financiera basadas en datos**.
+st.sidebar.title("📊 Credit Risk Scoring")
 
-Nuestra plataforma de **Credit Scoring** evalúa el riesgo crediticio mediante modelos de *Machine Learning*, analizando variables financieras, laborales y demográficas para estimar la **probabilidad de impago** y apoyar la toma de decisiones.
+page = st.sidebar.radio(
+    "Navegación",
+    ["🏢 Sobre Nosotros", "👤 Scoring individual", "👥 Scoring múltiple"]
+)
 
-Creemos en el uso responsable de la tecnología para impulsar **decisiones financieras más justas, eficientes y basadas en evidencia**.
-    """)
-
-
-# -----------------------------
-# Estado para navegación
-# -----------------------------
-if "mode" not in st.session_state:
-    st.session_state.mode = None  # None | "single" | "bulk"
+st.sidebar.divider()
+st.sidebar.caption("Soluciones inteligentes de decisión financiera")
 
 # -----------------------------
-# Función dummy de scoring (sin modelo real)
+# Función dummy de scoring
 # -----------------------------
 def dummy_pd_score(data: dict) -> float:
-    """
-    Devuelve una probabilidad de impago (PD) simulada en [0,1].
-    (Solo para plantilla: reemplazar por tu model_final.predict_proba)
-    """
     income = float(data.get("AMT_INCOME_TOTAL", 0) or 0)
     credit = float(data.get("AMT_CREDIT", 0) or 0)
     years_work = float(data.get("YEARS_ACTUAL_WORK", 0) or 0)
 
     ratio = credit / (income + 1e-6)
-
-    # Heurística simple: ratio alto => más PD, más años trabajando => menos PD
     pd_ = 0.15 + 0.10 * min(ratio, 10) - 0.01 * min(years_work, 30)
-    pd_ = float(np.clip(pd_, 0.01, 0.95))
-    return pd_
+    return float(np.clip(pd_, 0.01, 0.95))
+
 
 def pd_to_score(pd, base_score=600, pdo=50):
     odds = (1 - pd) / pd
@@ -54,264 +44,113 @@ def pd_to_score(pd, base_score=600, pdo=50):
     return float(offset + factor * np.log(odds))
 
 # -----------------------------
-# Pantalla 0: elegir modo
+# Página: Sobre Nosotros
 # -----------------------------
-def choose_mode():
-    st.title("Entrada de solicitudes (Plantilla)")
-    st.write("¿Vas a rellenar datos para **1 persona** o para **varias personas**?")
+if page == "🏢 Sobre Nosotros":
+    st.title("Sobre Nosotros")
 
-    option = st.radio("Modo:", ["1 persona", "Varias personas"], horizontal=True)
+    st.markdown("""
+Somos una empresa especializada en **analítica avanzada y soluciones de decisión financiera basadas en datos**. 
+Nuestro objetivo es ayudar a entidades financieras y organizaciones a **evaluar el riesgo crediticio de forma precisa, 
+transparente y eficiente**, apoyándonos en técnicas modernas de *Machine Learning* y *Data Science*.
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Continuar", use_container_width=True):
-            st.session_state.mode = "single" if option == "1 persona" else "bulk"
-            st.rerun()
-    with col2:
-        st.info("Plantilla sin base de datos. Resultados simulados para mostrar el flujo.")
+Nuestra plataforma de **Credit Scoring** analiza múltiples variables financieras, laborales y demográficas para estimar la 
+**probabilidad de impago** de un solicitante y generar recomendaciones objetivas que apoyen la toma de decisiones. 
+El sistema está diseñado para integrarse fácilmente en procesos de evaluación existentes, ofreciendo resultados rápidos, 
+escalables y consistentes.
+
+Creemos en el uso responsable de la tecnología para impulsar **decisiones financieras más justas, sostenibles y basadas en evidencia**, 
+reduciendo la incertidumbre y mejorando la gestión del riesgo.
+""")
+
+    st.info("La tecnología al servicio de decisiones financieras más inteligentes y eficientes.")
 
 # -----------------------------
-# Modo 1: formulario (basado en el tuyo)
+# Página: Scoring individual
 # -----------------------------
-def single_form():
+elif page == "👤 Scoring individual":
     st.title("Formulario del préstamo (1 persona)")
 
-    # ID del cliente
     SK_ID_CURR = st.text_input("ID del solicitante")
     NAME = st.text_input("Nombre del solicitante")
 
-    # Edad
-    AGES = st.slider("Edad:", min_value=18, max_value=100, value=18, step=1)
-    labels = [1, 2, 3, 4]
-    bins = [18, 34, 43, 54, 100]
-    AGE_BINS = pd.cut([AGES], bins=bins, labels=labels, right=True, include_lowest=True).to_list()[0]
+    AGES = st.slider("Edad:", 18, 100, 30)
+    AGE_BINS = pd.cut([AGES], bins=[18, 34, 43, 54, 100], labels=[1, 2, 3, 4])[0]
 
-    # Género
-    GENDER = st.selectbox("Género del solicitante:", ["Masculino", "Femenino"])
-    GENDER_M = 1 if GENDER == "Masculino" else 0
-    GENDER_F = 1 if GENDER == "Femenino" else 0
+    GENDER = st.selectbox("Género:", ["Masculino", "Femenino"])
     CODE_GENDER = "M" if GENDER == "Masculino" else "F"
 
-    # Hijos
-    CNT_CHILDREN = st.selectbox("Número de hijos:", ["0", "1", "2", "3", "4 o más"])
-    CNT_CHILDREN = {"0": 0, "1": 1, "2": 2, "3": 3, "4 o más": 4}[CNT_CHILDREN]
+    CNT_CHILDREN = st.selectbox("Número de hijos:", [0, 1, 2, 3, "4 o más"])
+    CNT_CHILDREN = 4 if CNT_CHILDREN == "4 o más" else CNT_CHILDREN
 
-    # Estudios
     NAME_EDUCATION_TYPE = st.selectbox(
         "Nivel de estudios:",
-        ["Lower secondary", "Secondary / secondary special", "Incomplete higher", "Higher education", "Academic degree"],
-    )
-    LEVEL_EDUCATION_TYPE = {
-        "Lower secondary": 0,
-        "Secondary / secondary special": 1,
-        "Incomplete higher": 2,
-        "Higher education": 3,
-        "Academic degree": 4,
-    }[NAME_EDUCATION_TYPE]
-
-    # Familia
-    FAMILY_STATUS = st.selectbox(
-        "Situación familiar del solicitante:",
-        ["Married", "Single / not married", "Civil marriage", "Separated", "Widow"],
+        ["Lower secondary", "Secondary / secondary special", "Incomplete higher", "Higher education", "Academic degree"]
     )
 
-    # Vivienda
-    HOUSING_TYPE = st.selectbox(
-        "Tipo de vivienda del solicitante:",
-        ["With parents", "Rented apartment", "House / apartment", "Municipal apartment", "Office apartment", "Co-op apartment"],
-    )
-
-    # Ingresos
-    AMT_INCOME_TOTAL = st.number_input("Ingresos del solicitante:", min_value=0.00, value=0.00, step=100.00)
-
-    # Fuente de ingresos
-    INCOME_TYPE = st.selectbox(
-        "Indica la fuente de ingresos del solicitante:",
-        ["Working", "State servant", "Commercial associate", "Businessman", "Maternity leave", "Student", "Unemployed", "Pensioner"],
-    )
-
-    # Años en su trabajo actual
-    YEARS_ACTUAL_WORK = st.text_input("Años en su actual puesto de trabajo (vacío si no aplica):")
-
-    # Flags
-    FLAG_OWN_REALTY = st.checkbox("¿El cliente posee casa propia?")
-    FLAG_PHONE = st.checkbox("¿Ha proporcionado su número de teléfono?")
-    FLAG_DNI = st.checkbox("¿Ha entregado el DNI?")
-    FLAG_PASAPORTE = st.checkbox("¿Ha entregado el pasaporte?")
-    FLAG_COMPROBANTE_DOM_FISCAL = st.checkbox("¿Ha entregado su comprobante de domicilio fiscal?")
-    FLAG_ESTADO_CUENTA_BANC = st.checkbox("¿Ha entregado el estado de su cuenta bancaria?")
-    FLAG_TARJETA_ID_FISCAL = st.checkbox("¿Ha entregado su tarjeta de identificación fiscal?")
-    FLAG_CERTIFICADO_LABORAL = st.checkbox("¿Ha entregado su certificado laboral?")
-
-    # Crédito solicitado
-    AMT_CREDIT = st.number_input("Crédito solicitado:", min_value=0.0, value=0.0, step=100.0)
+    AMT_INCOME_TOTAL = st.number_input("Ingresos anuales", min_value=0.0, step=100.0)
+    AMT_CREDIT = st.number_input("Crédito solicitado", min_value=0.0, step=100.0)
+    YEARS_ACTUAL_WORK = st.number_input("Años en el trabajo actual", min_value=0.0, step=0.5)
 
     st.divider()
 
-    if st.button("Procesar (simulado)", use_container_width=True):
-        # Validaciones básicas solo al pulsar
-        errors = []
-        try:
-            sk_id_int = int(SK_ID_CURR)
-            if sk_id_int < 0:
-                errors.append("El ID debe ser entero positivo o 0.")
-        except Exception:
-            errors.append("El ID debe ser un entero válido y no puede estar vacío.")
-
-        if NAME == "" or (not NAME.isalpha()):
-            errors.append("El nombre debe ser válido (solo letras) y no puede estar vacío.")
-
-        years_work_value = 0.0
-        if YEARS_ACTUAL_WORK != "":
-            try:
-                years_work_value = float(YEARS_ACTUAL_WORK)
-                if years_work_value < 0:
-                    errors.append("Años de trabajo debe ser positivo.")
-            except Exception:
-                errors.append("Años de trabajo debe ser numérico (o vacío).")
-
-        if errors:
-            st.error("Corrige los errores:")
-            for e in errors:
-                st.write("•", e)
-            st.stop()
-
-        # Construimos “fila” como en tu estructura
-        datos_solicitante = {
-            "SK_ID_CURR": int(SK_ID_CURR),
-            "NAME": str(NAME),
-            "AGE_BINS": int(AGE_BINS),
-            "AGE": int(AGES),
-            "CODE_GENDER": CODE_GENDER,
-            "GENDER_M": int(GENDER_M),
-            "GENDER_F": int(GENDER_F),
-            "CNT_CHILDREN": int(CNT_CHILDREN),
-            "NAME_EDUCATION_TYPE": NAME_EDUCATION_TYPE,
-            "LEVEL_EDUCATION_TYPE": int(LEVEL_EDUCATION_TYPE),
-            "NAME_FAMILY_STATUS": FAMILY_STATUS,
-            "NAME_HOUSING_TYPE": HOUSING_TYPE,
-            "NAME_INCOME_TYPE": INCOME_TYPE,
-            "AMT_INCOME_TOTAL": float(AMT_INCOME_TOTAL),
-            "AMT_CREDIT": float(AMT_CREDIT),
-            "YEARS_ACTUAL_WORK": float(years_work_value) if YEARS_ACTUAL_WORK != "" else None,
-            "FLAG_OWN_REALTY": int(FLAG_OWN_REALTY),
-            "FLAG_PHONE": int(FLAG_PHONE),
-            "FLAG_DNI": int(FLAG_DNI),
-            "FLAG_PASAPORTE": int(FLAG_PASAPORTE),
-            "FLAG_COMPROBANTE_DOM_FISCAL": int(FLAG_COMPROBANTE_DOM_FISCAL),
-            "FLAG_ESTADO_CUENTA_BANC": int(FLAG_ESTADO_CUENTA_BANC),
-            "FLAG_TARJETA_ID_FISCAL": int(FLAG_TARJETA_ID_FISCAL),
-            "FLAG_CERTIFICADO_LABORAL": int(FLAG_CERTIFICADO_LABORAL),
-        }
-
-        df = pd.DataFrame([datos_solicitante])
-        st.success("Datos capturados correctamente.")
-        st.dataframe(df, use_container_width=True)
-
-        # Resultados simulados
-        pd_score = dummy_pd_score({
+    if st.button("Procesar solicitud", use_container_width=True):
+        data = {
             "AMT_INCOME_TOTAL": AMT_INCOME_TOTAL,
             "AMT_CREDIT": AMT_CREDIT,
-            "YEARS_ACTUAL_WORK": years_work_value,
-        })
-        score = pd_to_score(pd_score)
-        threshold = 0.5
-        decision = int(pd_score >= threshold)
+            "YEARS_ACTUAL_WORK": YEARS_ACTUAL_WORK
+        }
 
-        st.subheader("Resultado (simulado)")
+        pd_score = dummy_pd_score(data)
+        score = pd_to_score(pd_score)
+
+        st.subheader("Resultado del análisis")
         c1, c2, c3 = st.columns(3)
-        c1.metric("PD (prob. impago)", f"{pd_score:.2%}")
+
+        c1.metric("PD", f"{pd_score:.2%}")
         c2.metric("Score", f"{score:.0f}")
-        c3.metric("Decisión", "❌ Riesgo alto" if decision else "✅ Riesgo bajo")
+        c3.metric("Decisión", "❌ Riesgo alto" if pd_score >= 0.5 else "✅ Riesgo bajo")
 
         if pd_score < 0.2:
-            st.success("Riesgo bajo: Aprobación recomendada ✅")
+            st.success("Aprobación recomendada")
         elif pd_score < 0.4:
-            st.warning("Riesgo medio: Revisión manual 🟡")
+            st.warning("Revisión manual recomendada")
         else:
-            st.error("Riesgo alto: Rechazo recomendado ❌")
-
-    st.divider()
-    if st.button("⬅️ Volver", use_container_width=True):
-        st.session_state.mode = None
-        st.rerun()
+            st.error("Rechazo recomendado")
 
 # -----------------------------
-# Modo 2: varias personas (tabla)
+# Página: Scoring múltiple
 # -----------------------------
-def bulk_table():
-    st.title("Carga múltiple (varias personas)")
-    st.write("Rellena varias solicitudes en la tabla. Resultados simulados.")
+elif page == "👥 Scoring múltiple":
+    st.title("Carga múltiple de solicitudes")
 
     cols = [
-        "SK_ID_CURR", "NAME", "AGE", "CODE_GENDER",
-        "CNT_CHILDREN", "AMT_INCOME_TOTAL", "AMT_CREDIT",
-        "NAME_INCOME_TYPE", "NAME_EDUCATION_TYPE", "NAME_FAMILY_STATUS", "NAME_HOUSING_TYPE",
-        "YEARS_ACTUAL_WORK",
-        "FLAG_OWN_REALTY", "FLAG_PHONE", "FLAG_DNI", "FLAG_PASAPORTE",
-        "FLAG_COMPROBANTE_DOM_FISCAL", "FLAG_ESTADO_CUENTA_BANC",
-        "FLAG_TARJETA_ID_FISCAL", "FLAG_CERTIFICADO_LABORAL",
+        "SK_ID_CURR", "NAME", "AGE", "AMT_INCOME_TOTAL",
+        "AMT_CREDIT", "YEARS_ACTUAL_WORK"
     ]
 
-    n = st.number_input("Número de solicitantes", min_value=2, max_value=200, value=5, step=1)
-    df = pd.DataFrame([{c: None for c in cols} for _ in range(int(n))])
-    df.index = range(1, int(n) + 1)  # 👈 ahora se verá 1..n
-    edited = st.data_editor(df, use_container_width=True, num_rows="fixed")
+    n = st.number_input("Número de solicitantes", 2, 200, 5)
+    df = pd.DataFrame([{c: None for c in cols} for _ in range(n)])
+    edited = st.data_editor(df, use_container_width=True)
 
+    if st.button("Procesar solicitudes", use_container_width=True):
+        out = edited.copy()
 
-    st.divider()
-    col1, col2, col3 = st.columns(3)
+        out["PD"] = out.apply(
+            lambda r: dummy_pd_score(r),
+            axis=1
+        )
+        out["SCORE"] = out["PD"].apply(pd_to_score)
+        out["DECISION"] = out["PD"].apply(
+            lambda p: "❌ Riesgo alto" if p >= 0.5 else "✅ Riesgo bajo"
+        )
 
-    with col1:
-        if st.button("✅ Validar", use_container_width=True):
-            errors = []
-            if edited["SK_ID_CURR"].isna().any():
-                errors.append("Hay SK_ID_CURR vacíos.")
-            if edited["NAME"].isna().any():
-                errors.append("Hay NAME vacíos.")
-            if errors:
-                for e in errors:
-                    st.error(e)
-            else:
-                st.success("Validación básica OK.")
+        st.subheader("Resultados")
+        st.dataframe(out, use_container_width=True)
 
-    with col2:
-        if st.button("⚙️ Procesar (simulado)", use_container_width=True):
-            # Calcula PD/Score fila a fila de forma simulada
-            out = edited.copy()
-            out["PD"] = out.apply(
-                lambda r: dummy_pd_score({
-                    "AMT_INCOME_TOTAL": r.get("AMT_INCOME_TOTAL", 0),
-                    "AMT_CREDIT": r.get("AMT_CREDIT", 0),
-                    "YEARS_ACTUAL_WORK": r.get("YEARS_ACTUAL_WORK", 0),
-                }),
-                axis=1
-            )
-            out["SCORE"] = out["PD"].apply(pd_to_score)
-            out["DECISION"] = out["PD"].apply(lambda p: "❌ Riesgo alto" if p >= 0.5 else "✅ Riesgo bajo")
-
-            st.subheader("Resultados (simulados)")
-            st.dataframe(out, use_container_width=True)
-
-            st.download_button(
-                "Descargar resultados CSV",
-                data=out.to_csv(index=False).encode("utf-8"),
-                file_name="resultados_scoring_simulados.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-
-    with col3:
-        if st.button("⬅️ Volver", use_container_width=True):
-            st.session_state.mode = None
-            st.rerun()
-
-# -----------------------------
-# Router
-# -----------------------------
-if st.session_state.mode is None:
-    choose_mode()
-elif st.session_state.mode == "single":
-    single_form()
-else:
-    bulk_table()
+        st.download_button(
+            "Descargar CSV",
+            data=out.to_csv(index=False).encode("utf-8"),
+            file_name="resultados_scoring.csv",
+            mime="text/csv"
+        )
